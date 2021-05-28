@@ -1,0 +1,46 @@
+{
+	"basic":{
+		"hello":"hi",
+		"hi":"hello",
+		"bye":"goodbye",
+		"goodbye":"bye",
+		"sigh":"*sigh*",
+		"*sigh*":"*sigh*",
+		"sell":"You can't sell stuff yet dummy",
+		"buy":"You can't buy stuff yet dummy",
+		"pee":"yummy",
+		"piss":"yummy",
+		"freeitem":"*gives free item*",
+		"pog":"pog",
+		"thank you":"you're welcome",
+		"fuck off":"that's not very nice",
+		"fuck you":"that's not very nice",
+		"fuck":"that's not very nice",
+		"no":"yes",
+		"yes":"no",
+		"whaddup":"not much, hbu?"
+	},
+
+	"attemptedShutdown":"You can't get rid of me that easily",
+
+	"added":"Hello. Thanks for adding me.",
+	"promotedPrefix":"Currently promoted trades:\n",
+
+	"promoted":"Trading is currently unavailable. Check back in two weeks.",
+
+	"upcomingFeature":"This feature is not available yet",
+
+	"value":"Our value of your inventory: ",
+
+	"trade":{
+		"admin":"Admin trade accepted.",
+		"donation":"Thank you for the donation!",
+		"stealing":"I'm sorry, but I am not reciving any items in this trade.",
+
+		"sufficient":"The trade has been accepted. Thanks for doin' buisiness.",
+		"insufficient":"I'm sorry but you can not afford these items with the items provided.",
+
+		"notGiving":"I am currently not selling this item.",
+		"notReciving":"I currently have no value associated with this item."
+	}
+}

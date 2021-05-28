@@ -1,0 +1,101 @@
+{
+	"Scrap Metal":{
+		"id":10179073555,
+		"buy":1,
+		"sell":1
+	},
+	"Reclaimed Metal":{
+		"id":10187763677,
+		"buy":3,
+		"sell":3
+	},
+	"Refined Metal":{
+		"id":10187763704,
+		"buy":9,
+		"sell":9
+	},
+	"Mann Co. Key":{
+		"buy":521,
+		"sell":521
+	},
+
+	"Winter 2020 War Paint Case":{
+		"buy":1,
+		"sell":2
+	},
+	"Winter 2020 Cosmetic Case":{
+		"buy":1,
+		"sell":2
+	},
+	"Winter 2019 War Paint Case":{
+		"buy":1,
+		"sell":2
+	},
+	"Winter 2019 Cosmetic Case":{
+		"buy":1,
+		"sell":2
+	},
+	"Wicked Windfall Case":{
+		"buy":1,
+		"sell":2
+	},
+	"Scream Fortress XII War Paint Case":{
+		"buy":1,
+		"sell":2
+	},
+
+	"Battle-Worn Robot KB-808":{
+		"buy":7,
+		"sell":9
+	},
+	"Battle-Worn Robot Money Furnace":{
+		"buy":7,
+		"sell":9
+	},
+	"Battle-Worn Robot Taunt Processor":{
+		"buy":7,
+		"sell":9
+	},
+	"Reinforced Robot Humor Suppression Pump":{
+		"buy":1,
+		"sell":2
+	},
+	"Reinforced Robot Bomb Stabilizer":{
+		"buy":1,
+		"sell":2
+	},
+	"Pristine Robot Brainstorm Bulb":{
+		"buy":11,
+		"sell":13
+	},
+
+	"Secret Saxton":{
+		"buy":14,
+		"sell":17
+	},
+	"Tour of Duty Ticket":{
+		"buy":238,
+		"sell":252
+	},
+	"Name Tag":{
+		"buy":113,
+		"sell":116
+	},
+	"The Festivizer":{
+		"buy":365,
+		"sell":369
+	},
+	"Noise Maker - Winter Holiday":{
+		"buy":0.5,
+		"sell":2
+	},
+
+	"The Frying Pan":{
+		"buy":11,
+		"sell":12
+	},
+	"Ellis Cap":{
+		"buy":11,
+		"sell":12
+	}
+}
