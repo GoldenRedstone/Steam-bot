@@ -4,27 +4,30 @@ const TradeOfferManager = require('steam-tradeoffer-manager');
 const SteamTotp = require('steam-totp');
 const fs = require('fs');
 
-const client = new SteamUser();
-const community = new SteamCommunity();
-const manager = new TradeOfferManager({
-	steam: client,
-	community: community,
-	language: 'en'
-});
-
-// client.setOption('promptSteamGuardCode', false)
-
 const config = require('./config.json');
 const prices = require('./prices.json');
 const messages = require('./messages.json');
 
-const logOnOptions = {
-	accountName: config.username,
-	password: config.password,
-	twoFactorCode: SteamTotp.generateAuthCode(config.sharedSecret)
-}
+let client = new SteamUser();
+let community = new SteamCommunity();
+let manager = new TradeOfferManager({
+	"steam": client,
+	"community":community,
+	"language": "en"
+});
+
+
+// client.setOption('promptSteamGuardCode', false)
+
+let logOnOptions = {
+	"accountName": config.username,
+	"password": config.password,
+	"twoFactorCode": SteamTotp.getAuthCode(config.sharedSecret)
+};
 
 client.logOn(logOnOptions);
+
+
 
 function manageError(err) {
 	if (err) {
@@ -45,13 +48,28 @@ function logName(err, personas, sid, file) {
     fs.appendFile('messages.txt', name+"\n", (err) => {manageError(err)});
 }
 
-
 // Start up messages
 client.on('loggedOn', () => {
 	console.log("Logged On");
 	client.setPersona(SteamUser.EPersonaState.Online);
 	if (config.onlineMode) {client.gamesPlayed(440)}
 });
+
+client.on('webSession', function(sessionID, cookies) {
+	manager.setCookies(cookies, function(err) {
+		if (err) {
+			console.log(err);
+			process.exit(1); // Fatal error since we couldn't get our API key
+			return;
+		}
+
+		console.log("Got API key: " + manager.apiKey);
+	});
+
+	community.setCookies(cookies);
+
+});
+
 client.on('newItems', (count) => {
 	console.log("= New Items since last manual update: "+count);
 });
@@ -75,17 +93,17 @@ client.on('friendMessage', function(sid, message) {
 
 	content = message.toLowerCase().replace("!","")
 
-	if (content == "quit") {
-		// throw new Error();
-		console.log(typeof(sid))
-		if (sid == config.ownerID) {
-			client.chatMessage(sid, "logging off");
-			console.log("--logging off--");
-			client.logOff()
-		} else {
-			client.chatMessage(sid, messages.attemptedShutdown);
-			console.log(" Someone tried to quit "+sid);
-		}
+	if (content.startsWith("quit")) {
+		throw new Error();
+		// console.log(typeof(sid))
+		// if (sid == config.ownerID) {
+		// 	client.chatMessage(sid, "logging off");
+		// 	console.log("--logging off--");
+		// 	client.logOff()
+		// } else {
+		// 	client.chatMessage(sid, messages.attemptedShutdown);
+		// 	console.log(" Someone tried to quit "+sid);
+		// }
 
 	} else if (content in messages.basic) {
 		client.chatMessage(sid, messages.basic[content]);
@@ -95,7 +113,18 @@ client.on('friendMessage', function(sid, message) {
 		client.chatMessage(sid, messages.upcomingFeature);
 		console.log(" Upcoming feature '"+content+"' hinted to")
 
-	} else if (content == "value") {
+	} else if (content.startsWith("help")) {
+		response = ""
+		for (command in messages.help) {
+			response += " - "
+			response += command
+			response += "  -  "
+			response += messages.help[command]
+			response += "\n"
+		}
+		client.chatMessage(sid, response);
+
+	} else if (content.startsWith("valuemyinv")) {
 		community.getUserInventoryContents(sid, 440, 2, true, (err, inventory, currency, totalItems) => {
 			manageError(err)
 			var value = 0
@@ -112,8 +141,47 @@ client.on('friendMessage', function(sid, message) {
 			// client.chatMessage(sid, "total number of TF2 items: "+totalItems);
 			client.chatMessage(sid, messages.value+Math.round((value/9)*100)/100+"ref");
 		})
+
+	} else if (content.startsWith("prices")) {
+		item = content.replace("prices ","")
+		response = ""
+		if (item == "buy") {
+			for (i in prices) {
+				response += " - " + i + " - "
+				response += Math.round((prices[i]["buy"]/9)*100)/100
+				response += "ref \n"
+			}
+		} else if (item == "sell") {
+			for (i in prices) {
+				response += " - " + i + " - "
+				response += Math.round((prices[i]["sell"]/9)*100)/100
+				response += "ref \n"
+			}
+		} else if (message.replace("!prices ","") in prices){
+			response += message.replace("!prices ","")
+			response += "\n"
+			response += "buy - "
+			response += prices[message.replace("!prices ","")]["buy"]
+			response += "\n"
+			response += "sell - "
+			response += prices[message.replace("!prices ","")]["sell"]
+			response += "\n"
+		} else {
+			response = "Invalid item or command"
+		}
+		client.chatMessage(sid, response);
+
+	} else if (content == "promoted") {
+		client.chatMessage(sid,
+			messages.promotedPrefix + messages.promoted);
+
 	} else if (content == "writetest") {
-		fs.appendFile('input.txt', 'Simply Easy Learning!', (err) => {manageError(err)});
+		fs.appendFile('input.txt', 'Simply Easy Learning!',
+			(err) => {manageError(err)});
+
+	} else if (content.startsWith("[tradeoffer")) {
+		return;
+
 	} else {
 		console.log("! Invalid command: '"+content+"'");
 	}
@@ -142,113 +210,87 @@ client.on('friendRelationship', function(sid, relationship) {
 
 
 // Trading
-client.on('websession', (sessionid, cookies) => {
-	manager.setCookies(cookies);
-	community.setCookies(cookies);
-
-	community.startConfirmationChecker(20000, config.identitySecret);
-})
-function acceptOffer(offer) {
-	offer.accept((err) => {
-		community.checkConfirmations();
-		console.log(" We accepted an offer")
-		if (err) console.log("! There was an error accepting offer");
-	});
-	// console.log("Recived items")
-	// offer.getRecivedItems((items) => {
-	// 	for (i in items) {
-	// 		console.log(i);
-	// 	}
-	// })
-}
 function declineOffer(offer) {
 	offer.decline((err) => {
-		if (err) console.log("! There was an error delining offer");
+		if (err) console.log(err);
 		console.log(" We declined an offer")
 	});
 }
+function acceptOffer(offer) {
+	offer.accept((err) => {
+		if (err) console.log(err);
+		console.log(" We accepted an offer")
+	});
+}
 function processOffer(offer) {
-	if (offer.isGlitched || offer.state == 11){
-		console.log("> Offer is glitched")
-		declineOffer(offer);
-	} else if (offer.partner.getSteamID64() == config.ownerID){
+	console.log(offer.partner.getSteamID64());
+	console.log(offer.partner);
+	// if (offer.isGlitched){
+	// 	console.log("> Offer is glitched")
+	// 	declineOffer(offer);
+	if (offer.partner.getSteamID64() == config.ownerID){
 		console.log("> Admin offer")
 		acceptOffer(offer);
-		client.chatMessage(sid, messages.trade.adminTrade);
+		client.chatMessage(offer.partner.getSteamID64(), messages.trade.adminTrade);
 
 	} else if (offer.itemsToGive.length <= 0) {
 		console.log("> Someone is donating to us")
 		acceptOffer(offer);
-		client.chatMessage(sid, messages.trade.donation);
-	} else if (offer.itemsToRecieve.length <= 0) {
+		client.chatMessage(offer.partner.getSteamID64(), messages.trade.donation);
+	} else if (offer.itemsToReceive.length <= 0) {
 		console.log("> Someone is stealing from us")
 		declineOffer(offer);
-		client.chatMessage(sid, messages.trade.stealing);
+		client.chatMessage(offer.partner.getSteamID64(), messages.trade.stealing);
 
 	} else {
 		console.log("> Trade started!")
 		var giveValue = 0;
-		var recieveValue = 0;
+		var receiveValue = 0;
 
 		for (var i in offer.itemsToGive){
 			var item = offer.itemsToGive[i].market_name;
 			if (prices[item]) {
-				giveValue += prices[item].selling;
+				giveValue += prices[item].sell;
 			} else {
 				console.log("! Invalid giving item: '"+item+"'")
 				giveValue += 9999;
-				client.chatMessage(sid, messages.trade.notGiving);
-				client.chatMessage(sid, item)
+				client.chatMessage(offer.partner.getSteamID64(), messages.trade.notGiving);
+				client.chatMessage(offer.partner.getSteamID64(), item)
 			}
 		}
-		for (var i in offer.itemsToRecieve){
-			var item = offer.itemsToRecieve[i].market_name;
+		for (var i in offer.itemsToReceive){
+			var item = offer.itemsToReceive[i].market_name;
 			if (prices[item]) {
-				recieveValue += prices[item].buying;
+				receiveValue += prices[item].buy;
 			} else {
 				console.log("! Invalid reciving item: '"+item+"'")
-				client.chatMessage(sid, messages.trade.notReciving);
-				client.chatMessage(sid, item)
+				client.chatMessage(offer.partner.getSteamID64(), messages.trade.notReciving);
+				client.chatMessage(offer.partner.getSteamID64(), item)
 			}
 		}
 		console.log(" = giveValue: '"+giveValue+"'")
-		console.log(" = recieveValue: '"+recieveValue+"'")
-		if (recieveValue >= giveValue) {
+		console.log(" = receiveValue: '"+receiveValue+"'")
+		if (receiveValue >= giveValue) {
 			console.log("> Sufficient offer")
 			acceptOffer(offer);
-			client.chatMessage(sid, messages.trade.sufficient);
+			client.chatMessage(offer.partner.getSteamID64(), messages.trade.sufficient);
 		} else {
 			console.log("> Insufficient offer")
 			declineOffer(offer);
-			client.chatMessage(sid, messages.trade.insufficient);
+			client.chatMessage(offer.partner.getSteamID64(), messages.trade.insufficient);
 		}
 	}
 }
+
 manager.on('newOffer', (offer) => {
 	console.log("")
-	console.log("-- We recieved a new offer --");
-	offer.getUserDetails((callback) => {
-		console.log(callback.them.personaName)
-	});
+	console.log("-- We received a new offer --");
+	// offer.getUserDetails((callback) => {
+	// 	console.log(callback.them.personaName)
+	// });
 	console.log(offer.message)
 	processOffer(offer);
-})
+});
 
 
-// community.login(logOnOptions, );
 
-// community.on('log on', () => {
-
-// })
-
-// steamMarketSell.getPrice('Chroma 3 Case', true, (err, price) => {
-//     if (err) console.log(err);
-//     else priceOfChroma = price;
-// });
-// steamMarketSell.on('item sold', (info) => {
-//     console.log(info)
-// })
-// steamMarketSell.on('item not sold', (info) => {
-//     console.log('not sold');
-//     console.log(info)
-// })
